@@ -28,6 +28,11 @@
     button:hover {
       background-color: #666;
     }
+    button:disabled {
+      background-color: #222;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
     input[type="number"] {
       font-size: 20px;
       width: 80px;
@@ -39,64 +44,118 @@
       border: none;
       background-color: #000;
     }
-	#toggleBtn.pausa {
-	  background-color: #2ecc71; /* Verde cuando está pausado */
-	}
-
-	#toggleBtn.running {
-	  background-color: #e74c3c; /* Rojo cuando está corriendo */
-	}
+    #toggleBtn.pausa {
+      background-color: #2ecc71;
+    }
+    #toggleBtn.running {
+      background-color: #e74c3c;
+    }
   </style>
 </head>
 <body>
   <h1>Control del Clockshot</h1>
 
-  <!-- Reloj embebido -->
   <iframe src="reloj.html" title="Clockshot"></iframe>
 
-  <!-- Panel de control -->
   <div id="panel">
     <button id="toggleBtn">▶ Iniciar</button>
     <button onclick="send('reset', 24)">🔄 Reset a 24</button>
     <button onclick="send('reset', 14)">🔄 Reset a 14</button>
+    <button id="timeoutBtn" onclick="activarTimeout()" disabled>⏱ Timeout 60s</button>
     <br><br>
-    <label>Corregir conteo:</label>
+    <label id="lblControlRestante">Control Restante:</label>
     <input type="number" id="manualInput" min="0" max="99" step="0.1" />
     <button onclick="setManual()">Aplicar</button>
+    <button onclick="abrirVentanaReloj()">🖥 Abrir Reloj</button>
+    <br><br>
   </div>
 
   <script>
     const channel = new BroadcastChannel('clockshot');
     let corriendo = false;
+    let tiempoGuardado = null;
+    let timeoutActivo = false;
+
+    const toggleBtn = document.getElementById('toggleBtn');
+    const timeoutBtn = document.getElementById('timeoutBtn');
+    const manualInput = document.getElementById('manualInput');
+    const lblControlRestante = document.getElementById('lblControlRestante');
 
     function send(action, value = null) {
       channel.postMessage({ action, value });
     }
 
-    function setManual() {
-      const val = document.getElementById('manualInput').value;
+    function actualizarLabelRestante() {
+      const val = manualInput.value;
       if (val !== '') {
-        send('setManual', val);
+        lblControlRestante.textContent = `Control Restante (${parseFloat(val).toFixed(1)}s):`;
+      } else {
+        lblControlRestante.textContent = 'Control Restante:';
       }
     }
 
-    document.getElementById('toggleBtn').addEventListener('click', function () {
+    function setManual() {
+      const val = manualInput.value;
+      if (val !== '') {
+        send('setManual', val);
+        actualizarLabelRestante();
+      }
+    }
+
+    function actualizarBotones() {
+      const estaEnPausa = toggleBtn.classList.contains('pausa');
+      timeoutBtn.disabled = !estaEnPausa || timeoutActivo;
+    }
+
+    toggleBtn.addEventListener('click', function () {
       if (!corriendo) {
         send('start');
         this.textContent = '⏸ Pausar';
-		this.classList.remove('pausa');
-		this.classList.add('running');
-
-
+        this.classList.remove('pausa');
+        this.classList.add('running');
+        corriendo = true;
       } else {
         send('pause');
         this.textContent = '▶ Iniciar';
-		this.classList.remove('running');
-		this.classList.add('pausa');
-
+        this.classList.remove('running');
+        this.classList.add('pausa');
+        corriendo = false;
       }
-      corriendo = !corriendo;
+      actualizarBotones();
     });
+
+    channel.onmessage = (event) => {
+      if (event.data.action === 'updateTime' && timeoutActivo) {
+        tiempoGuardado = parseFloat(event.data.value);
+        manualInput.value = tiempoGuardado.toFixed(1);
+        actualizarLabelRestante();
+
+        send('reset', 60); // Inicia timeout
+
+        setTimeout(() => {
+          send('setManual', tiempoGuardado);
+          timeoutActivo = false;
+          actualizarBotones();
+        }, 60000);
+      }
+    };
+
+    function activarTimeout() {
+      if (timeoutBtn.disabled) return;
+
+      timeoutActivo = true;
+      actualizarBotones();
+      send('requestTime');
+    }
+
+    function abrirVentanaReloj() {
+      window.open('reloj.html', 'ClockshotVentana', 'width=800,height=600');
+    }
+
+    // Inicializa estado visual y funcional
+    toggleBtn.classList.add('pausa');
+    actualizarBotones();
+    actualizarLabelRestante();
   </script>
 </body>
 </html>

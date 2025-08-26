@@ -77,33 +77,32 @@
       interval = null;
     }
 
-    channel.onmessage = (e) => {
-      const { action, value } = e.data;
+	channel.onmessage = (e) => {
+	  const { action, value } = e.data;
 
-      if (action === 'requestTime') {
-        // Responde con el tiempo actual al controlador
-        channel.postMessage({ action: 'updateTime', value: time.toFixed(1) });
-      }
-
-      if (action === 'start') {
-        startClock();
-      } else if (action === 'pause') {
-        stopClock();
-      } else if (action === 'reset') {
-        const wasRunning = interval !== null;
-        time = parseFloat(value);
-        updateDisplay();
-        if (wasRunning) {
-          stopClock();
-          startClock();
-        }
-      } else if (action === 'setManual') {
-        time = parseFloat(value);
-        updateDisplay();
-      }
-    };
+	  if (action === 'start') {
+		startClock();
+	  } else if (action === 'pause') {
+		stopClock();
+	  } else if (action === 'reset') {
+		const wasRunning = interval !== null; // ¿estaba corriendo antes del reset?
+		time = parseFloat(value);
+		updateDisplay();
+		if (wasRunning) {
+		  stopClock(); // detener para evitar doble intervalo
+		  startClock(); // continuar si estaba corriendo
+		}
+		// si estaba en pausa, no se reinicia el intervalo
+	  } else if (action === 'setManual') {
+		time = parseFloat(value);
+		updateDisplay();
+	  }
+	};
+	
 
     updateDisplay();
+	
+	
   </script>
 </body>
 </html>
