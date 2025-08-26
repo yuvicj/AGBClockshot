@@ -7,33 +7,67 @@
     body {
       font-family: 'Arial', sans-serif;
       text-align: center;
-      margin-top: 100px;
+      margin: 0;
+      padding: 0;
+      background-color: #111;
+      color: #fff;
+    }
+    #panel {
+      margin-top: 20px;
     }
     button {
       font-size: 20px;
       margin: 10px;
       padding: 10px 20px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background-color: #444;
+      color: #fff;
+    }
+    button:hover {
+      background-color: #666;
     }
     input[type="number"] {
       font-size: 20px;
       width: 80px;
       text-align: center;
     }
+    iframe {
+      width: 100%;
+      height: 60vh;
+      border: none;
+      background-color: #000;
+    }
+	#toggleBtn.pausa {
+	  background-color: #2ecc71; /* Verde cuando está pausado */
+	}
+
+	#toggleBtn.running {
+	  background-color: #e74c3c; /* Rojo cuando está corriendo */
+	}
   </style>
 </head>
 <body>
   <h1>Control del Clockshot</h1>
-  <button onclick="send('start')">▶ Iniciar</button>
-  <button onclick="send('pause')">⏸ Pausar</button>
-  <button onclick="send('reset', 24)">🔄 Reset a 24</button>
-  <button onclick="send('reset', 14)">🔄 Reset a 14</button>
-  <br><br>
-  <label>Corregir conteo:</label>
-  <input type="number" id="manualInput" min="0" max="99" step="0.1" />
-  <button onclick="setManual()">Aplicar</button>
+
+  <!-- Reloj embebido -->
+  <iframe src="reloj.html" title="Clockshot"></iframe>
+
+  <!-- Panel de control -->
+  <div id="panel">
+    <button id="toggleBtn">▶ Iniciar</button>
+    <button onclick="send('reset', 24)">🔄 Reset a 24</button>
+    <button onclick="send('reset', 14)">🔄 Reset a 14</button>
+    <br><br>
+    <label>Corregir conteo:</label>
+    <input type="number" id="manualInput" min="0" max="99" step="0.1" />
+    <button onclick="setManual()">Aplicar</button>
+  </div>
 
   <script>
     const channel = new BroadcastChannel('clockshot');
+    let corriendo = false;
 
     function send(action, value = null) {
       channel.postMessage({ action, value });
@@ -45,6 +79,24 @@
         send('setManual', val);
       }
     }
+
+    document.getElementById('toggleBtn').addEventListener('click', function () {
+      if (!corriendo) {
+        send('start');
+        this.textContent = '⏸ Pausar';
+		this.classList.remove('pausa');
+		this.classList.add('running');
+
+
+      } else {
+        send('pause');
+        this.textContent = '▶ Iniciar';
+		this.classList.remove('running');
+		this.classList.add('pausa');
+
+      }
+      corriendo = !corriendo;
+    });
   </script>
 </body>
 </html>
