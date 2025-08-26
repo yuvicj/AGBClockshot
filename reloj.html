@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>AGB - Clockshot</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      background-color: #000;
+      font-family: 'Arial', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: background-color 0.3s ease;
+    }
+
+    #clock {
+      font-size: 80vmin;
+      font-weight: bold;
+      color: #ff2a2a;
+      text-align: center;
+      user-select: none;
+      transition: color 0.3s ease;
+    }
+
+    .final {
+      background-color: #c00;
+    }
+
+    .final #clock {
+      color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="clock">24</div>
+  <audio id="buzzer" src="buzzer.wav" preload="auto"></audio>
+
+  <script>
+    const channel = new BroadcastChannel('clockshot');
+    let time = 24.0;
+    let interval = null;
+    const clock = document.getElementById('clock');
+    const buzzer = document.getElementById('buzzer');
+
+    function formatTime(t) {
+      return t <= 4.9 ? t.toFixed(1) : Math.floor(t).toString();
+    }
+
+    function updateDisplay() {
+      clock.textContent = formatTime(time);
+      document.body.classList.toggle('final', time === 0);
+    }
+
+    function tick() {
+      time = Math.max(0, +(time - 0.1).toFixed(1));
+      updateDisplay();
+
+      if (time <= 0) {
+        clearInterval(interval);
+        interval = null;
+        buzzer.play();
+      }
+    }
+
+    function startClock() {
+      if (!interval) {
+        interval = setInterval(tick, 100);
+      }
+    }
+
+    function stopClock() {
+      clearInterval(interval);
+      interval = null;
+    }
+
+	channel.onmessage = (e) => {
+	  const { action, value } = e.data;
+
+	  if (action === 'start') {
+		startClock();
+	  } else if (action === 'pause') {
+		stopClock();
+	  } else if (action === 'reset') {
+		const wasRunning = interval !== null; // ¿estaba corriendo antes del reset?
+		time = parseFloat(value);
+		updateDisplay();
+		if (wasRunning) {
+		  stopClock(); // detener para evitar doble intervalo
+		  startClock(); // continuar si estaba corriendo
+		}
+		// si estaba en pausa, no se reinicia el intervalo
+	  } else if (action === 'setManual') {
+		time = parseFloat(value);
+		updateDisplay();
+	  }
+	};
+
+    updateDisplay();
+  </script>
+</body>
+</html>
