@@ -104,7 +104,7 @@
 
     function actualizarBotones() {
       const estaEnPausa = toggleBtn.classList.contains('pausa');
-      timeoutBtn.disabled = !estaEnPausa || timeoutActivo;
+      timeoutBtn.disabled = !estaEnPausa;
     }
 
     toggleBtn.addEventListener('click', function () {
@@ -138,6 +138,17 @@
           actualizarBotones();
         }, 60000);
       }
+
+      // ✅ Habilita el botón de timeout si el reloj llegó a cero
+      if (event.data.action === 'tiempoFinalizado') {
+        corriendo = false;
+        toggleBtn.textContent = '▶ Iniciar';
+        toggleBtn.classList.remove('running');
+        toggleBtn.classList.add('pausa');
+        actualizarBotones();
+      } else {
+	  
+	  }
     };
 
     function activarTimeout() {
